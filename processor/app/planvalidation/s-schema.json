@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": [
+    "year",
+    "t1",
+    "t2",
+    "t3",
+    "t4",
+    "t5",
+    "t6",
+    "t7",
+    "t8",
+    "t9",
+    "t10",
+    "t11",
+    "t12",
+    "t13",
+    "t14",
+    "t15"
+  ],
+  "properties": {
+    "year": {
+      "type": "integer"
+    },
+    "t1": { "$ref": "#/definitions/weekDates" },
+    "t2": { "$ref": "#/definitions/weekDates" },
+    "t3": { "$ref": "#/definitions/weekDates" },
+    "t4": { "$ref": "#/definitions/weekDates" },
+    "t5": { "$ref": "#/definitions/weekDates" },
+    "t6": { "$ref": "#/definitions/weekDates" },
+    "t7": { "$ref": "#/definitions/weekDates" },
+    "t8": { "$ref": "#/definitions/weekDates" },
+    "t9": { "$ref": "#/definitions/weekDates" },
+    "t10": { "$ref": "#/definitions/weekDates" },
+    "t11": { "$ref": "#/definitions/weekDates" },
+    "t12": { "$ref": "#/definitions/weekDates" },
+    "t13": { "$ref": "#/definitions/weekDates" },
+    "t14": { "$ref": "#/definitions/weekDates" },
+    "t15": { "$ref": "#/definitions/weekDates" }
+  },
+  "definitions": {
+    "weekDates": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

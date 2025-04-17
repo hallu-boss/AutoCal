@@ -1,0 +1,27 @@
+services:
+  processor:
+    build:
+      context: ./processor
+      dockerfile: Dockerfile
+    container_name: autocal-processor
+    ports:
+      - "8000:8000"
+    environment:
+      - MONGODB_URI=mongodb://autocal-mongo:27017
+    networks:
+      - autocal-network
+
+  mongo:
+    image: mongo:latest
+    container_name: autocal-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+networks:
+  autocal-network:
+    driver: bridge
+
+volumes:
+  mongo_data:
