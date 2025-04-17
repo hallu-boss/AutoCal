@@ -10,6 +10,8 @@ services:
       - MONGODB_URI=mongodb://autocal-mongo:27017
     networks:
       - autocal-network
+    depends_on:
+      - mongo
 
   mongo:
     image: mongo:latest
