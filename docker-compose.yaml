@@ -19,11 +19,24 @@ services:
       context: ./gcal-api
       dockerfile: Dockerfile
     container_name: autocal-google
+    volumes:
+      - ./shared:/app/shared
     networks:
       - autocal-network
     depends_on:
       - redis
-      - mongo
+
+  data-prepare:
+    build:
+      context: ./data-prepare
+      dockerfile: Dockerfile
+    container_name: autocal-data-prepare
+    volumes:
+      - ./shared:/app/shared
+    networks:
+      - autocal-network
+    depends_on:
+      - redis
       
   mongo:
     image: mongo:latest

@@ -19,11 +19,8 @@ configurations = db["configurations"]
 REDIS_URL = os.getenv("REDIS_URL", "redis://autocal-redis:6379/0")
 redis_client = redis.Redis.from_url(REDIS_URL)
 
-# Google Delegate Task Queue
-gtq_name = "google_task_queue"
-
-# Google Response Queue Prefix (dynamic per config_id)
-grq_prefix = "google_response:"
+DATA_QUEUE_NAME = "data_queue"
+GOOGLE_API_QUEUE_NAME = "google_api_queue"
 
 @app.post("/export")
 async def handle_export(config_id: str = Body(..., embed=True)):
@@ -35,28 +32,28 @@ async def handle_export(config_id: str = Body(..., embed=True)):
         if entry is None:
             raise HTTPException(status_code=404, detail="Configuration not found")
 
-        task = {
+        data_to_prepare = {
             "config_id": config_id,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "status": "pending",
+            "schedule": entry["schedule"],
+            "timetable": entry["timetable"]
         }
 
         # Umieść zadanie w kolejce
-        redis_client.rpush(gtq_name, json.dumps(task))
+        redis_client.rpush(DATA_QUEUE_NAME, json.dumps(data_to_prepare))
 
-        # Kolejka odpowiedzi dla danego config_id
-        response_queue = f"{grq_prefix}{config_id}"
+        # # Kolejka odpowiedzi dla danego config_id
+        # response_queue = f"{grq_prefix}{config_id}"
+        #
+        # # Oczekiwanie na odpowiedź maksymalnie 15 sekund
+        # response = redis_client.blpop(response_queue, timeout=15)
 
-        # Oczekiwanie na odpowiedź maksymalnie 15 sekund
-        response = redis_client.blpop(response_queue, timeout=15)
+        # if response is None:
+        #     raise HTTPException(504, "Timeout waiting for export result")
+        #
+        # _, data = response
+        # result = json.loads(data)
 
-        if response is None:
-            raise HTTPException(504, "Timeout waiting for export result")
-
-        _, data = response
-        result = json.loads(data)
-
-        return {"status": "success", "result": result}
+        # return {"status": "success", "result": result}
 
     except Exception as e:
         raise HTTPException(500, f"Server error: {str(e)}")

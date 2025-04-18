@@ -87,11 +87,21 @@ class JsonValidator:
         year = data["year"]
         weeks = {k: v for k, v in data.items() if k != "year"}
 
+        all_dates = []
+
+        last_month = None
         for week in weeks:
             for date_str in data[week]:
                 try:
                     day, month = map(int, date_str.split('.'))
-                    datetime(year=year, month=month, day=day)
+                    if last_month is not None and last_month == 12 and month == 1:
+                        year += 1
+
+                    str_date = datetime(year=year, month=month, day=day).strftime("%d.%m.%Y")
+                    if str_date in all_dates:
+                        raise BadJsonFormatException(f"Date '{str_date}' already exists")
+                    all_dates.append(str_date)
+
                 except (ValueError, TypeError) as e:
                     raise BadJsonFormatException(
                         f"Invalid date '{date_str}' in field '{week}'. Must be a valid calendar date in {year} (format DD.MM)"
@@ -102,7 +112,23 @@ class JsonValidator:
     def parse_schedule(self, content: bytes) -> dict:
         data = self.validate_schedule(content)
 
-        return data
+        year = data["year"]
+        weeks = {k: v for k, v in data.items() if k != "year"}
+
+        parsed = {"year": year}
+
+        last_month = None
+        for week_key in weeks.keys():
+            for date_str in weeks[week_key]:
+                day, month = map(int, date_str.split('.'))
+                if last_month is not None and last_month == 12 and month == 1:
+                    year += 1
+                str_date = datetime(year=year, month=month, day=day).strftime("%d.%m.%Y")
+                if week_key not in parsed:
+                    parsed[week_key] = []
+                parsed[week_key].append(str_date)
+
+        return parsed
 
     def __parse_occurrences(self, otype: str) -> list:
         res = []

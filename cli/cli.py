@@ -1,6 +1,6 @@
 import requests
 
-def send_to_processor():
+def config():
     schedule_path = 'data/schedule.json'
     timetable_path = 'data/timetable.json'
 
@@ -18,7 +18,7 @@ def send_to_processor():
 
 def export():
     url = 'http://0.0.0.0:8000/export'
-    data = { "config_id": "5b0f6acd-9233-409f-9e84-8c4937dcd2fe" }
+    data = { "config_id": "f151f166-936a-44b9-97a1-935b4e4c8218" }
     headers = { "Content-Type": "application/json" }
 
     return requests.post(url, json=data, headers=headers)
