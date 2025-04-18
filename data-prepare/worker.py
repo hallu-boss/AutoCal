@@ -1,8 +1,6 @@
 from datetime import datetime, timedelta
-from shared import RedisQueueWorker
+from shared import RedisQueueWorker, DATA_QUEUE_NAME, WEEKS_HEADERS, WEEK_DAYS_HEADERS, OCCURRENCES_HEADER
 
-DATA_QUEUE_NAME = "data_queue"
-GOOGLE_API_QUEUE_NAME = "google_api_queue"
 
 def get_work_week_days_in_month(ref):
     ref
@@ -26,17 +24,15 @@ def prepare(data):
 
     dates = get_work_week_days_in_month(datetime.today())
 
-    weeks = {k: v for k, v in schedule.items() if k != "year"}
+    weeks = {k: v for k, v in schedule.items() if k in WEEKS_HEADERS}
 
-    wheaders = ("t1", "t2", "t3", "t4", "t5", "t6", "t7", "t8", "t9", "t10", "t11", "t12", "t13", "t14", "t15")
-
-    trans_weeks = {"Monday": -1, "Tuesday": -1, "Wednesday": -1, "Thursday": -1, "Friday": -1}
+    trans_weeks = {wday: -1 for wday in WEEK_DAYS_HEADERS}
 
     tkeys = list(trans_weeks.keys())
-    for id, date in zip(range(5), dates):
+    for id, date in zip(range(len(dates)), dates):
         for key, values in weeks.items():
             if date in values:
-                trans_weeks[tkeys[id]] = wheaders.index(key) + 1
+                trans_weeks[tkeys[id]] = WEEKS_HEADERS.index(key) + 1
                 break
 
     print(trans_weeks)
@@ -45,7 +41,7 @@ def prepare(data):
     for date, (week_day, virtwn) in zip(dates, trans_weeks.items()):
         timetable_day = timetable[week_day]
         for event in timetable_day:
-            if virtwn in event["occurrences"]:
+            if virtwn in event[OCCURRENCES_HEADER]:
                 if date not in result:
                     result[date] = []
                 result[date].append(event)
