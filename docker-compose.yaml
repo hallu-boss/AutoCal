@@ -7,7 +7,8 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - MONGODB_URI=mongodb://autocal-mongo:27017
+      - MONGODB_URI=mongodb://admin:haslo123@autocal-mongo:27017/?authSource=admin
+      - REDIS_HOST=autocal-redis
     networks:
       - autocal-network
     depends_on:
@@ -18,8 +19,23 @@ services:
     container_name: autocal-mongo
     ports:
       - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: haslo123
     volumes:
       - mongo_data:/data/db
+    networks:
+      - autocal-network
+
+  redis:
+    image: redis:alpine
+    container_name: autocal-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - autocal-network
 
 networks:
   autocal-network:
@@ -27,3 +43,4 @@ networks:
 
 volumes:
   mongo_data:
+  redis_data:
