@@ -19,6 +19,12 @@ configurations = db["configurations"]
 REDIS_URL = os.getenv("REDIS_URL", "redis://autocal-redis:6379/0")
 redis_client = redis.Redis.from_url(REDIS_URL)
 
+# Google Delegate Task Queue
+gtq_name = "google_task_queue"
+
+# Google Response Queue Prefix (dynamic per config_id)
+grq_prefix = "google_response:"
+
 @app.post("/export")
 async def handle_export(config_id: str = Body(..., embed=True)):
     try:
@@ -35,7 +41,22 @@ async def handle_export(config_id: str = Body(..., embed=True)):
             "status": "pending",
         }
 
-        redis_client.rpush("export_queue", json.dumps(task))
+        # Umieść zadanie w kolejce
+        redis_client.rpush(gtq_name, json.dumps(task))
+
+        # Kolejka odpowiedzi dla danego config_id
+        response_queue = f"{grq_prefix}{config_id}"
+
+        # Oczekiwanie na odpowiedź maksymalnie 15 sekund
+        response = redis_client.blpop(response_queue, timeout=15)
+
+        if response is None:
+            raise HTTPException(504, "Timeout waiting for export result")
+
+        _, data = response
+        result = json.loads(data)
+
+        return {"status": "success", "result": result}
 
     except Exception as e:
         raise HTTPException(500, f"Server error: {str(e)}")

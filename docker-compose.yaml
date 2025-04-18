@@ -13,7 +13,18 @@ services:
       - autocal-network
     depends_on:
       - mongo
-
+  
+  google:
+    build:
+      context: ./gcal-api
+      dockerfile: Dockerfile
+    container_name: autocal-google
+    networks:
+      - autocal-network
+    depends_on:
+      - redis
+      - mongo
+      
   mongo:
     image: mongo:latest
     container_name: autocal-mongo
