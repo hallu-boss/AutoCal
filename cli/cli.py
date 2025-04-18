@@ -16,6 +16,20 @@ def send_to_processor():
             timeout=10
         )
 
+def export():
+    url = 'http://0.0.0.0:8000/export'
+    data = { "config_id": "5b0f6acd-9233-409f-9e84-8c4937dcd2fe" }
+    headers = { "Content-Type": "application/json" }
+
+    return requests.post(url, json=data, headers=headers)
+
 if __name__ == '__main__':
-    res = send_to_processor()
+    res = export()
+
+    if res.status_code == 200:
+        print("✅ Sukces!")
+        print(f"odpowiedź: {res.json()}")
+    else:
+        print(f"❌ Błąd: {res.json().get('detail')}")
+
     print(res)

@@ -1,8 +1,9 @@
 import os
 import uuid
 import redis
+import json
 
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Body
 from planvalidation import JsonValidator, BadJsonFormatException
 from pymongo import MongoClient
 from datetime import datetime, timezone
@@ -17,6 +18,27 @@ configurations = db["configurations"]
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://autocal-redis:6379/0")
 redis_client = redis.Redis.from_url(REDIS_URL)
+
+@app.post("/export")
+async def handle_export(config_id: str = Body(..., embed=True)):
+    try:
+        entry = configurations.find_one(
+            {"_id": config_id},
+            {"_id": 0, "schedule": 1, "timetable": 1}
+        )
+        if entry is None:
+            raise HTTPException(status_code=404, detail="Configuration not found")
+
+        task = {
+            "config_id": config_id,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "status": "pending",
+        }
+
+        redis_client.rpush("export_queue", json.dumps(task))
+
+    except Exception as e:
+        raise HTTPException(500, f"Server error: {str(e)}")
 
 @app.post("/config")
 async def handle_config(
