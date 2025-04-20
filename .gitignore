@@ -1,3 +1,6 @@
 __pycache__/
 .venv/
 .idea
+
+credentials.json
+token.json

@@ -1,4 +1,5 @@
 from typing import Final
+from zoneinfo import ZoneInfo
 
 DATA_QUEUE_NAME: Final[str] = "data_queue"
 GOOGLE_API_QUEUE_NAME: Final[str] = "google_api_queue"
@@ -12,3 +13,5 @@ WEEK_DAYS_HEADERS: Final[tuple] = ("Monday", "Tuesday", "Wednesday", "Thursday",
 YEAR_HEADER: Final[str] = "year"
 
 OCCURRENCES_HEADER: Final[str] = "occurrences"
+
+WARSAW_TZ: Final[ZoneInfo]  = ZoneInfo('Europe/Warsaw')
