@@ -1,5 +1,10 @@
+from typing import Final
+
 import redis
 import json
+
+
+RESPONSE_PREFIX: Final[str] = "RES:"
 
 class RedisQueueWorker:
     def __init__(self, name:str, *, redis_url:str, queue_name:str):
@@ -35,7 +40,8 @@ class RedisQueueWorker:
                     continue
 
                 try:
-                    func(data)
+                    res = func(data)
+                    self.redis_client.rpush(RESPONSE_PREFIX + self.queue_name, json.dumps(res))
 
                 except Exception as e:
                     print(f"❌ Błąd podczas wykonywania funkcji przetwarzającej dane: {e}")
