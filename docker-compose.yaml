@@ -4,6 +4,8 @@ services:
       context: ./processor
       dockerfile: Dockerfile
     container_name: autocal-processor
+    volumes:
+      - ./shared:/app/shared
     ports:
       - "8000:8000"
     environment:
