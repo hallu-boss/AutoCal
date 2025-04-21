@@ -8,6 +8,9 @@ from planvalidation import JsonValidator, BadJsonFormatException
 from pymongo import MongoClient
 from datetime import datetime, timezone
 
+from shared import GoogleAPIReq
+from shared.types import ReqType
+
 app = FastAPI()
 validator = JsonValidator()
 
@@ -22,44 +25,45 @@ redis_client = redis.Redis.from_url(REDIS_URL)
 DATA_QUEUE_NAME = "data_queue"
 GOOGLE_API_QUEUE_NAME = "google_api_queue"
 
+RP = "RES:"
+
 @app.post("/export")
 async def handle_export(config_id: str = Body(..., embed=True)):
     try:
         entry = configurations.find_one(
             {"_id": config_id},
-            {"_id": 0, "schedule": 1, "timetable": 1}
+            {"_id": 0, "tk": 1, "schedule": 1, "timetable": 1}
         )
         if entry is None:
             raise HTTPException(status_code=404, detail="Configuration not found")
 
         data_to_prepare = {
-            "config_id": config_id,
             "schedule": entry["schedule"],
             "timetable": entry["timetable"]
         }
 
         # Umieść zadanie w kolejce
         redis_client.rpush(DATA_QUEUE_NAME, json.dumps(data_to_prepare))
+        response = redis_client.blpop(RP + DATA_QUEUE_NAME, timeout=30)
 
-        # # Kolejka odpowiedzi dla danego config_id
-        # response_queue = f"{grq_prefix}{config_id}"
-        #
-        # # Oczekiwanie na odpowiedź maksymalnie 15 sekund
-        # response = redis_client.blpop(response_queue, timeout=15)
+        data = json.loads(response[1])
+        er = GoogleAPIReq(token=entry['tk'], events=data).model_dump_json()
 
-        # if response is None:
-        #     raise HTTPException(504, "Timeout waiting for export result")
-        #
-        # _, data = response
-        # result = json.loads(data)
+        print(er)
 
-        # return {"status": "success", "result": result}
+        redis_client.rpush(GOOGLE_API_QUEUE_NAME, er)
+
+        response = redis_client.blpop(RP + GOOGLE_API_QUEUE_NAME, timeout=360)
+
+
+
 
     except Exception as e:
         raise HTTPException(500, f"Server error: {str(e)}")
 
 @app.post("/config")
 async def handle_config(
+        token: UploadFile = File(..., description="Plik google auth"),
         schedule: UploadFile = File(..., description="Plik terminarza wydziałowego"),
         timetable: UploadFile = File(..., description="Plik planu studenta")
 ):
@@ -68,8 +72,10 @@ async def handle_config(
         timetable_data = validator.parse_timetable(timetable.file.read())
 
         config_id = str(uuid.uuid4())
+
         document = {
             "_id": config_id,
+            "tk": token.file.read(),
             "schedule": schedule_data,
             "timetable": timetable_data,
             "created_at": datetime.now(timezone.utc)
