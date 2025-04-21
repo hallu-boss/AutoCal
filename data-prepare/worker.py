@@ -1,8 +1,11 @@
 from datetime import datetime, timedelta
-from shared import RedisQueueWorker, DATA_QUEUE_NAME, WEEKS_HEADERS, WEEK_DAYS_HEADERS, OCCURRENCES_HEADER, CalendarEvent, WARSAW_TZ
+from shared import RedisQueueWorker
 
+DATA_QUEUE_NAME = "data_queue"
+GOOGLE_API_QUEUE_NAME = "google_api_queue"
 
 def get_work_week_days_in_month(ref):
+    ref
     start_of_week = ref - timedelta(days=ref.weekday())
 
     current_month = ref.month
@@ -23,31 +26,35 @@ def prepare(data):
 
     dates = get_work_week_days_in_month(datetime.today())
 
-    weeks = {k: v for k, v in schedule.items() if k in WEEKS_HEADERS}
+    weeks = {k: v for k, v in schedule.items() if k != "year"}
 
-    trans_weeks = {wday: -1 for wday in WEEK_DAYS_HEADERS}
+    wheaders = ("t1", "t2", "t3", "t4", "t5", "t6", "t7", "t8", "t9", "t10", "t11", "t12", "t13", "t14", "t15")
+
+    trans_weeks = {"Monday": -1, "Tuesday": -1, "Wednesday": -1, "Thursday": -1, "Friday": -1}
 
     tkeys = list(trans_weeks.keys())
-    for id, date in zip(range(len(dates)), dates):
+    for id, date in zip(range(5), dates):
         for key, values in weeks.items():
             if date in values:
-                trans_weeks[tkeys[id]] = WEEKS_HEADERS.index(key) + 1
+                trans_weeks[tkeys[id]] = wheaders.index(key) + 1
                 break
+
+    print(trans_weeks)
 
     result ={}
     for date, (week_day, virtwn) in zip(dates, trans_weeks.items()):
         timetable_day = timetable[week_day]
         for event in timetable_day:
-            if virtwn in event[OCCURRENCES_HEADER]:
+            if virtwn in event["occurrences"]:
                 if date not in result:
                     result[date] = []
-                result[date].append(CalendarEvent.from_dict(event, date=date, timezone=WARSAW_TZ))
+                result[date].append(event)
 
-    to_send = [v.to_dict() for k, l in result.items() for v in l]
-    print(to_send)
-
-    return to_send
+    print(result)
 
 if __name__ == "__main__":
     worker = RedisQueueWorker("Data Prepare", redis_url="redis://autocal-redis:6379", queue_name=DATA_QUEUE_NAME)
     worker.listen(prepare)
+
+    # today = datetime.today()
+    # print(get_week_days_in_month(today))
