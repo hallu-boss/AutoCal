@@ -98,13 +98,13 @@ class GoogleCalendar:
 
         return events_result.get('items', [])
 
-    def add_event(self, event: CalendarEvent):
+    def add_event(self, event: dict):
         return self.service.events().insert(
             calendarId=self.create_cal(),
-            body=event.to_dict()
+            body=event
         ).execute()
 
-    def add_events(self, events: List[CalendarEvent]) -> List[dict]:
+    def add_events(self, events: List[dict]) -> List[dict]:
         results = []
 
         for event in events:
@@ -114,7 +114,7 @@ class GoogleCalendar:
             except HttpError as e:
                 results.append({
                     "error": str(e),
-                    "event": event.to_dict()
+                    "event": event
                 })
 
         return results
