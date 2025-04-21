@@ -1,9 +1,8 @@
 from datetime import datetime, timedelta
-from shared import RedisQueueWorker, DATA_QUEUE_NAME, WEEKS_HEADERS, WEEK_DAYS_HEADERS, OCCURRENCES_HEADER
+from shared import RedisQueueWorker, DATA_QUEUE_NAME, WEEKS_HEADERS, WEEK_DAYS_HEADERS, OCCURRENCES_HEADER, CalendarEvent, WARSAW_TZ
 
 
 def get_work_week_days_in_month(ref):
-    ref
     start_of_week = ref - timedelta(days=ref.weekday())
 
     current_month = ref.month
@@ -35,8 +34,6 @@ def prepare(data):
                 trans_weeks[tkeys[id]] = WEEKS_HEADERS.index(key) + 1
                 break
 
-    print(trans_weeks)
-
     result ={}
     for date, (week_day, virtwn) in zip(dates, trans_weeks.items()):
         timetable_day = timetable[week_day]
@@ -44,9 +41,12 @@ def prepare(data):
             if virtwn in event[OCCURRENCES_HEADER]:
                 if date not in result:
                     result[date] = []
-                result[date].append(event)
+                result[date].append(CalendarEvent.from_dict(event, date=date, timezone=WARSAW_TZ))
 
-    print(result)
+    to_send = [v.to_dict() for k, l in result.items() for v in l]
+    print(to_send)
+
+    return to_send
 
 if __name__ == "__main__":
     worker = RedisQueueWorker("Data Prepare", redis_url="redis://autocal-redis:6379", queue_name=DATA_QUEUE_NAME)
