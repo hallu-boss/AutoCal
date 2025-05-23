@@ -1,4 +1,20 @@
 services:
+  cli:
+    build:
+      context: ./cli
+      dockerfile: Dockerfile
+    container_name: autocal-cli
+    volumes:
+      - ./cli:/app
+    ports:
+      - "2255:2255"
+    networks:
+      - autocal-network
+    profiles:
+      - cli
+    stdin_open: true
+    tty: true
+
   processor:
     build:
       context: ./processor

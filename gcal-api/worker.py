@@ -1,48 +1,91 @@
-import json
 import os
-import redis
-
-from shared import GOOGLE_API_QUEUE_NAME, GoogleAPIReq, RESPONSE_PREFIX
+from typing import Dict, Any
+from shared import (
+    RedisQueueWorker,
+    GOOGLE_API_QUEUE_NAME,
+    GoogleAPIReq,
+    RESPONSE_PREFIX,
+)
 from gcalendar import GoogleCalendar
 
 
-def main():
-    REDIS_URL = os.environ.get("REDIS_URL", "redis://autocal-redis:6379")
-    task_queue = "google_task_queue"  # musi być zgodne z FastAPI
+def process_google_calendar_task(data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Przetwarza zadanie Google Calendar API.
 
-    print(f"🚀 Worker Google Calendar uruchomiony. Nasłuchuję kolejki '{task_queue}'...")
+    Args:
+        data: Słownik z danymi zadania
+
+    Returns:
+        Słownik z wynikiem przetwarzania
+    """
+    try:
+        # Walidacja danych wejściowych przy użyciu Pydantic
+        model = GoogleAPIReq.model_validate(data)
+        print(f"📅 Przetwarzam zadanie Google Calendar: {len(model.events)} wydarzeń")
+
+        # Utworzenie klienta Google Calendar
+        google_client = GoogleCalendar(model.token)
+
+        # Dodanie wydarzeń do kalendarza
+        result = google_client.add_events(model.events)
+
+        # Przygotowanie odpowiedzi
+        response_data = {
+            "status": "success",
+            "message": "Wydarzenia zostały dodane do kalendarza",
+            "events_count": len(model.events),
+            "result": result if result else "OK",
+        }
+
+        print(f"✅ Pomyślnie dodano {len(model.events)} wydarzeń do kalendarza")
+        return response_data
+
+    except Exception as e:
+        # W przypadku błędu zwracamy informację o błędzie
+        error_response = {
+            "status": "error",
+            "message": str(e),
+            "error_type": type(e).__name__,
+        }
+        print(f"❌ Błąd podczas przetwarzania zadania Google Calendar: {e}")
+        return error_response
+
+
+def main():
+    """Główna funkcja uruchamiająca worker Google Calendar"""
+
+    # Konfiguracja
+    REDIS_URL = os.environ.get("REDIS_URL", "redis://autocal-redis:6379")
+    WORKER_NAME = "google-calendar-worker"
+
+    print(f"🚀 Inicjalizacja {WORKER_NAME}...")
 
     try:
-        red = redis.Redis.from_url(REDIS_URL)
+        # Utworzenie worker'a
+        worker = RedisQueueWorker(
+            name=WORKER_NAME, redis_url=REDIS_URL, queue_name=GOOGLE_API_QUEUE_NAME
+        )
 
-        while True:
-            task = red.lpop(GOOGLE_API_QUEUE_NAME)
+        print("📡 Sprawdzanie połączenia z Redis...")
+        if not worker.health_check():
+            print("❌ Brak połączenia z Redis")
+            return
 
-            if task:
-                model = GoogleAPIReq.model_validate_json(task)
+        print("✅ Połączenie z Redis OK")
+        print(f"🎯 Nasłuchuję kolejki: '{GOOGLE_API_QUEUE_NAME}'")
+        print(
+            f"📤 Odpowiedzi będą wysyłane do: '{RESPONSE_PREFIX}{GOOGLE_API_QUEUE_NAME}'"
+        )
+        print("⚡ Worker gotowy do pracy. Naciśnij Ctrl+C aby zatrzymać.")
 
-                print(model)
+        # Uruchomienie nasłuchiwania kolejki
+        worker.listen(process_google_calendar_task)
 
-                google_client = GoogleCalendar(model.token)
-                google_client.add_events(model.events)
-
-                # przykładowa odpowiedź
-                response_data = {"status": "done"}
-
-                # wyślij odpowiedź do dynamicznej kolejki
-                response_queue = f"{RESPONSE_PREFIX}{GOOGLE_API_QUEUE_NAME}"
-                red.rpush(response_queue, json.dumps(response_data))
-
-                print(f"✅ Zakończono eksport, wysłano odpowiedź.")
-            # else:
-            #     print("🕒 Brak zadań w kolejce...")
-
-    except redis.ConnectionError as e:
-        print(f"❌ Nie można połączyć się z Redis: {str(e)}")
-    except KeyboardInterrupt:
-        print("\n🛑 Zatrzymywanie workera...")
     except Exception as e:
-        print(f"❌ Nieoczekiwany błąd: {str(e)}")
+        print(f"❌ Błąd podczas inicjalizacji worker'a: {e}")
+        return
+
 
 if __name__ == "__main__":
     main()
