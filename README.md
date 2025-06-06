@@ -225,7 +225,7 @@ docker-compose up -d
 ## 🤝 Kontakt
 
 - **Repozytorium**: https://github.com/hallu-boss/AutoCal
-- **Dokumentacja**: Zobacz `autocal_thesis_docs.md`
+- **Dokumentacja**: Zobacz `pkims_dokumentacja_245817.pdf`
 - **Credentials**: Skontaktuj się z właścicielem projektu
 
 ## 📄 Licencja
