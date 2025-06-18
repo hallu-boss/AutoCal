@@ -37,7 +37,7 @@ def config_cmd():
             "timetable": ("timetable.json", tf, "application/json"),
         }
 
-        res = requests.post("http://0.0.0.0:8000/config", files=files, timeout=10)
+        res = requests.post("http://autocal-processor:8000/config", files=files, timeout=10)
 
         if res.status_code == 200:
             response_data = res.json()
@@ -99,7 +99,7 @@ def export(offset):
     week_desc = offset_desc.get(offset, f"tydzień z offsetem {offset}")
     print(f"📅 Generowanie planu dla: {week_desc}")
 
-    url = "http://0.0.0.0:8000/export"
+    url = "http://autocal-processor:8000/export"
     data = {"config_id": config_id, "offset": offset}
     headers = {"Content-Type": "application/json"}
 
